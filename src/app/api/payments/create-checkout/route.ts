@@ -3,10 +3,11 @@ import { createBrowserClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 // @ts-ignore - stripe package includes types but resolution differs
 import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_placeholder');
+
     const cookieStore = cookies();
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

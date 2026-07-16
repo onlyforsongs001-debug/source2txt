@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 async function hasProcessedEvent(eventId: string): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from('transactions')
@@ -96,7 +94,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 }
 
-async function handleInvoicePaid(invoice: any) {
+async function handleInvoicePaid(invoice: any, stripe: Stripe) {
   const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
@@ -143,7 +141,7 @@ async function handleInvoicePaid(invoice: any) {
   console.log(`Monthly credits added for user ${userId}`);
 }
 
-async function handleInvoicePaymentFailed(invoice: any) {
+async function handleInvoicePaymentFailed(invoice: any, stripe: Stripe) {
   const subscriptionId = invoice.subscription;
   if (!subscriptionId) return;
 
@@ -183,6 +181,8 @@ async function handleSubscriptionDeleted(subscription: any) {
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_placeholder');
+
     const body = await request.text();
     const signature = request.headers.get('stripe-signature') as string;
 
@@ -201,10 +201,10 @@ export async function POST(request: NextRequest) {
         await handleCheckoutCompleted(event.data.object);
         break;
       case 'invoice.paid':
-        await handleInvoicePaid(event.data.object);
+        await handleInvoicePaid(event.data.object, stripe);
         break;
       case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object);
+        await handleInvoicePaymentFailed(event.data.object, stripe);
         break;
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object);
