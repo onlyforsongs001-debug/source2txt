@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { apiPost } from '@/lib/api-client';
 import { VideoUploader } from '@/components/video-uploader';
 import { ResultDisplay } from '@/components/result-display';
 import { Loader2, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
@@ -93,14 +94,10 @@ export function WorkspaceTab({ user, credits, setCredits, subscriptionTier }: Wo
           setActiveResult(i);
           setResults([...newResults]);
           // Save to DB (async)
-          fetch('/api/save-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: item.file.name,
-              text: item.folderText,
-              fileCount: item.folderFileCount,
-            }),
+          apiPost('/api/save-text', {
+            fileName: item.file.name,
+            text: item.folderText,
+            fileCount: item.folderFileCount,
           }).catch((err) => console.error('Save text failed:', err));
           continue;
         }
@@ -111,10 +108,7 @@ export function WorkspaceTab({ user, credits, setCredits, subscriptionTier }: Wo
           formData.append('compress', compress.toString());
           if (chunkFiles > 0) formData.append('chunkFiles', chunkFiles.toString());
 
-          const response = await fetch('/api/extract-zip', {
-            method: 'POST',
-            body: formData,
-          });
+          const response = await apiPost('/api/extract-zip', formData);
 
           const data = await response.json();
 
@@ -159,10 +153,7 @@ export function WorkspaceTab({ user, credits, setCredits, subscriptionTier }: Wo
         formData.append('durationSeconds', duration.toString());
         formData.append('diarize', diarize.toString());
 
-        const response = await fetch('/api/transcribe', {
-          method: 'POST',
-          body: formData,
-        });
+        const response = await apiPost('/api/transcribe', formData);
 
         const data = await response.json();
 

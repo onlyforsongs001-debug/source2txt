@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import { apiGet } from '@/lib/api-client';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
 import { UsageTab } from '@/components/usage-tab';
@@ -36,7 +37,7 @@ export default function DashboardPage() {
 
   const fetchCredits = async (userId: string) => {
     try {
-      const response = await fetch('/api/credits');
+      const response = await apiGet('/api/credits');
       if (response.ok) {
         const data = await response.json();
         setCredits(data.credits);

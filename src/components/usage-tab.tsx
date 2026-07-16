@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiGet } from '@/lib/api-client';
 import { Wallet, CreditCard, Clock, History, Plus, Crown, FileText, Sparkles } from 'lucide-react';
 
 interface UsageTabProps {
@@ -17,7 +18,7 @@ export function UsageTab({ user, credits }: UsageTabProps) {
   const [monthlyMinutes, setMonthlyMinutes] = useState(0);
 
   useEffect(() => {
-    fetch('/api/credits')
+    apiGet('/api/credits')
       .then(r => r.json())
       .then(d => {
         setTier(d.subscription_tier || 'free');

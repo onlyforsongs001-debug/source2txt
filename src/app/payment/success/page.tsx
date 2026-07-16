@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import { apiPost } from '@/lib/api-client';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
 function PaymentContent() {
@@ -29,16 +30,10 @@ function PaymentContent() {
 
       try {
         // Call API to add credits
-        const response = await fetch('/api/credits', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: parseFloat(credits || '0') * 0.02,
-            paymentMethod: 'stripe',
-            paymentId: sessionId,
-          }),
+        const response = await apiPost('/api/credits', {
+          amount: parseFloat(credits || '0') * 0.02,
+          paymentMethod: 'stripe',
+          paymentId: sessionId,
         });
 
         const data = await response.json();

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSupabase, useTheme } from '@/components/providers';
 import { useTranslation } from '@/components/providers';
+import { apiGet, apiPost } from '@/lib/api-client';
 import { Settings, User, Bell, Shield, HelpCircle, ChevronRight, ChevronDown, Check, Loader2, Mail, ExternalLink, Globe, Moon, Sun, Clock, FileText, History } from 'lucide-react';
 
 interface SettingsTabProps {
@@ -69,7 +70,7 @@ export function SettingsTab({ user, credits = 0, subscriptionTier }: SettingsTab
   const fetchJobHistory = async () => {
     setHistoryLoading(true);
     try {
-      const res = await fetch('/api/credits?history=true');
+      const res = await apiGet('/api/credits', { history: 'true' });
       if (res.ok) {
         const data = await res.json();
         setJobHistory(data.jobs || []);
@@ -138,11 +139,7 @@ export function SettingsTab({ user, credits = 0, subscriptionTier }: SettingsTab
     setSupportError(null);
 
     try {
-      const res = await fetch('/api/support', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: supportSubject, message: supportMessage }),
-      });
+      const res = await apiPost('/api/support', { subject: supportSubject, message: supportMessage });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to send');
