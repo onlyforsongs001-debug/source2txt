@@ -124,7 +124,7 @@ async function handleInvoicePaid(invoice: any) {
     .update({
       credits: (profile.credits || 0) + 3600,
       subscription_period_end: new Date(
-        (subscription.current_period_end || 0) * 1000
+        ((subscription as any).current_period_end || 0) * 1000
       ).toISOString(),
       subscription_status: 'active',
       updated_at: new Date().toISOString(),
