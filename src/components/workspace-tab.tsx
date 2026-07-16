@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { apiPost } from '@/lib/api-client';
+import JSZip from 'jszip';
 import { VideoUploader } from '@/components/video-uploader';
 import { ResultDisplay } from '@/components/result-display';
 import { Loader2, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
@@ -93,34 +93,52 @@ export function WorkspaceTab({ user, credits, setCredits, subscriptionTier }: Wo
           });
           setActiveResult(i);
           setResults([...newResults]);
-          // Save to DB (async)
-          apiPost('/api/save-text', {
-            fileName: item.file.name,
-            text: item.folderText,
-            fileCount: item.folderFileCount,
+          fetch('/api/save-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: item.file.name,
+              text: item.folderText,
+              fileCount: item.folderFileCount,
+            }),
           }).catch((err) => console.error('Save text failed:', err));
           continue;
         }
 
         if (item.isZip) {
-          const formData = new FormData();
-          formData.append('zip', item.file);
-          formData.append('compress', compress.toString());
-          if (chunkFiles > 0) formData.append('chunkFiles', chunkFiles.toString());
+          const zip = await JSZip.loadAsync(item.file);
+          const entries: { path: string; text: string }[] = [];
+          const TEXT_EXTS = new Set([
+            '.txt', '.md', '.csv', '.json', '.xml', '.yaml', '.yml', '.env',
+            '.js', '.ts', '.jsx', '.tsx', '.py', '.rb', '.go', '.rs', '.java', '.kt', '.swift',
+            '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.pl', '.sh', '.bash', '.zsh',
+            '.css', '.scss', '.sass', '.less', '.html', '.htm', '.svg',
+            '.sql', '.graphql', '.proto', '.toml', '.ini', '.cfg', '.conf',
+            '.log', '.vue', '.svelte', '.astro', '.mjs', '.cjs', '.mts', '.cts',
+            '.bat', '.ps', '.ps1', '.psm1', '.psd1',
+          ]);
+          const SKIP_DIRS = ['node_modules/', '.git/', 'dist/', 'build/', '.next/', '__pycache__/'];
 
-          const response = await apiPost('/api/extract-zip', formData);
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to extract ZIP');
+          for (const [path, zipEntry] of Object.entries(zip.files)) {
+            if (zipEntry.dir) continue;
+            if (path.includes('..') || path.startsWith('/')) continue;
+            if (SKIP_DIRS.some(d => path.startsWith(d))) continue;
+            const ext = '.' + path.split('.').pop()?.toLowerCase();
+            if (!TEXT_EXTS.has(ext)) continue;
+            const content = await zipEntry.async('string');
+            if (!content.trim()) continue;
+            const header = `\n${'='.repeat(60)}\nFile: ${path}\n${'='.repeat(60)}\n`;
+            entries.push({ path, text: header + content + '\n' });
           }
+
+          const combined = entries.map(e => e.text).join('');
+          const resultText = `# Source2Txt Extraction\nSource: ${item.file.name}\nFiles: ${entries.length}\n---\n\n${combined}`;
 
           newResults.push({
             fileName: item.file.name,
-            text: data.text,
-            chunks: data.chunks,
-            segments: data.segments || [],
+            text: resultText,
+            chunks: entries.length > 10 ? [resultText] : undefined,
+            segments: [],
             creditsUsed: 0,
             status: 'completed',
           });
@@ -153,7 +171,7 @@ export function WorkspaceTab({ user, credits, setCredits, subscriptionTier }: Wo
         formData.append('durationSeconds', duration.toString());
         formData.append('diarize', diarize.toString());
 
-        const response = await apiPost('/api/transcribe', formData);
+        const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
 
         const data = await response.json();
 

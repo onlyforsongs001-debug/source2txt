@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@/components/providers';
-import { apiPost } from '@/lib/api-client';
 import { Copy, Download, FileText, Loader2, Check, Sparkles, ChevronDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -126,7 +125,11 @@ export function ResultDisplay({ text, segments = [], fileName = 'transcription',
   const handleDownloadDOCX = async () => {
     if (!text) return;
     try {
-      const response = await apiPost('/api/export', { text, fileName, format: 'docx' });
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, fileName, format: 'docx' }),
+      });
       if (!response.ok) throw new Error('Export failed');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -148,7 +151,11 @@ export function ResultDisplay({ text, segments = [], fileName = 'transcription',
     setSummaryExpanded(true);
 
     try {
-      const response = await apiPost('/api/summarize', { text, length: summaryLength });
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, length: summaryLength }),
+      });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to summarize');

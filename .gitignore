@@ -36,5 +36,13 @@ next-env.d.ts
 # FFmpeg
 tmp/
 
-# Agent coordination (secrets inside)
+# Agent sync (secrets)
 .agent_sync.md
+
+# Old deploy scripts (contain tokens)
+check_hf.py
+push_hf.py
+push_hf_docker.py
+set_hf_env.py
+update_hf_space.py
+koyeb.yaml

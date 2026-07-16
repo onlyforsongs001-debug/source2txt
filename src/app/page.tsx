@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { apiGet } from '@/lib/api-client';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
 import { WorkspaceTab } from '@/components/workspace-tab';
@@ -53,7 +52,7 @@ export default function Home() {
 
   const fetchCredits = async (userId: string) => {
     try {
-      const response = await apiGet('/api/credits');
+      const response = await fetch('/api/credits');
       if (response.ok) {
         const data = await response.json();
         setCredits(data.credits);
