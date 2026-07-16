@@ -171,7 +171,12 @@ export function WorkspaceTab({ user, credits, setCredits, subscriptionTier }: Wo
         formData.append('durationSeconds', duration.toString());
         formData.append('diarize', diarize.toString());
 
-        const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
+        const LARGE_FILE_SIZE = 10 * 1024 * 1024;
+        const LONG_DURATION = 1200;
+        const useHF = (item.file.size > LARGE_FILE_SIZE) || (duration > LONG_DURATION);
+        const transcribeUrl = useHF ? '/api/hf-transcribe' : '/api/transcribe';
+
+        const response = await fetch(transcribeUrl, { method: 'POST', body: formData });
 
         const data = await response.json();
 

@@ -39,6 +39,9 @@ tmp/
 # Agent sync (secrets)
 .agent_sync.md
 
+# HF Space (separate repo)
+hf_space/
+
 # Old deploy scripts (contain tokens)
 check_hf.py
 push_hf.py
@@ -46,3 +49,5 @@ push_hf_docker.py
 set_hf_env.py
 update_hf_space.py
 koyeb.yaml
+.vercel
+.env*
