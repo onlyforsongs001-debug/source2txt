@@ -208,11 +208,19 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
     const allEntries = await readAllEntries();
     for (const child of allEntries) {
       if (child.isDirectory) {
+        // Skip unwanted directories early
+        const dirPath = child.fullPath ? child.fullPath.replace(/^\//, '') : child.name;
+        if (shouldSkipPath(dirPath + '/')) {
+          continue;
+        }
         const subFiles = await traverseDirectory(child as FileSystemDirectoryEntry);
         results.push(...subFiles);
       } else if (child.isFile) {
         const file = await new Promise<File>((res) => (child as FileSystemFileEntry).file(res));
-        (file as any).relativePath = child.fullPath ? child.fullPath.replace(/^\//, '') : child.name;
+        const relativePath = child.fullPath ? child.fullPath.replace(/^\//, '') : child.name;
+        // Skip unwanted files
+        if (shouldSkipPath(relativePath)) continue;
+        (file as any).relativePath = relativePath;
         results.push(file);
       }
     }
@@ -406,30 +414,59 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
       return;
     }
 
-    const allFiles: File[] = [];
+    const droppedDirectories: FileSystemDirectoryEntry[] = [];
+    const droppedFiles: FileSystemFileEntry[] = [];
+
     for (const item of items) {
       const entry = item.webkitGetAsEntry();
       if (!entry) continue;
       if (entry.isDirectory) {
-        const subFiles = await traverseDirectory(entry as FileSystemDirectoryEntry);
-        allFiles.push(...subFiles);
+        droppedDirectories.push(entry as FileSystemDirectoryEntry);
       } else if (entry.isFile) {
-        const file = await new Promise<File>((resolve) => (entry as FileSystemFileEntry).file(resolve));
-        allFiles.push(file);
+        droppedFiles.push(entry as FileSystemFileEntry);
       }
     }
-    if (allFiles.length === 0) return;
 
-    const textFiles = allFiles.filter(f => {
-      const ext = '.' + f.name.split('.').pop()?.toLowerCase();
-      return TEXT_EXTENSIONS.has(ext);
-    });
+    // Process dropped directories (folder extraction + media inside)
+    for (const dirEntry of droppedDirectories) {
+      const allFiles = await traverseDirectory(dirEntry);
+      if (allFiles.length === 0) continue;
 
-    if (textFiles.length > 0 && textFiles.length === allFiles.length) {
-      const syntheticEvent = { target: { files: allFiles } } as unknown as React.ChangeEvent<HTMLInputElement>;
-      handleFolderChange(syntheticEvent);
-    } else {
-      handleFiles(allFiles);
+      // Separate text files from media/zip files
+      const textFiles: File[] = [];
+      const mediaFiles: File[] = [];
+
+      for (const f of allFiles) {
+        const ext = '.' + f.name.split('.').pop()?.toLowerCase();
+        const isMedia = f.type.startsWith('video/') || f.type.startsWith('audio/') ||
+                        f.type === 'application/zip' || f.type === 'application/x-zip-compressed' ||
+                        f.name.toLowerCase().endsWith('.zip');
+        if (TEXT_EXTENSIONS.has(ext)) {
+          textFiles.push(f);
+        } else if (isMedia) {
+          mediaFiles.push(f);
+        }
+        // Non-text, non-media files are silently skipped
+      }
+
+      // Process text files as folder extraction
+      if (textFiles.length > 0) {
+        const syntheticEvent = { target: { files: textFiles } } as unknown as React.ChangeEvent<HTMLInputElement>;
+        handleFolderChange(syntheticEvent);
+      }
+
+      // Process media files normally
+      if (mediaFiles.length > 0) {
+        handleFiles(mediaFiles);
+      }
+    }
+
+    // Process individual dropped files (not from a folder)
+    if (droppedFiles.length > 0) {
+      const files = await Promise.all(
+        droppedFiles.map(entry => new Promise<File>((resolve) => entry.file(resolve)))
+      );
+      handleFiles(files);
     }
   }, []);
 
