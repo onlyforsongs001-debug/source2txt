@@ -315,22 +315,32 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
       // Mark as ready
       // @ts-ignore
       const folderFile = new File([combined], folderName, { type: 'text/plain' });
-      setFiles(prev => prev.map((f, idx) =>
-        idx === prev.length - 1 ? { ...f, file: folderFile, folderText: combined, status: 'ready' as const, progress: 100, processingMessage: undefined } : f
-      ));
 
-      onFilesSelect?.([{
-        file: folderFile,
-        folderText: combined,
-        folderFileCount: textFiles.length,
-        isFolder: true,
-        status: 'ready' as const,
-        progress: 100,
-      }]);
+      try {
+        setFiles(prev => prev.map((f, idx) =>
+          idx === prev.length - 1 ? { ...f, file: folderFile, folderText: combined, status: 'ready' as const, progress: 100, processingMessage: undefined } : f
+        ));
+      } catch (setErr) {
+        console.error('setFiles error in folder:', setErr);
+      }
+
+      try {
+        onFilesSelect?.([{
+          file: folderFile,
+          folderText: combined,
+          folderFileCount: textFiles.length,
+          isFolder: true,
+          status: 'ready' as const,
+          progress: 100,
+        }]);
+      } catch (selectErr) {
+        console.error('onFilesSelect error in folder:', selectErr);
+      }
     } catch (err) {
-      console.error('Folder processing error:', err);
+      const errMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err) || 'Failed to process folder');
+      console.error('Folder processing error:', err, 'Type:', typeof err, 'Message:', errMsg);
       setFiles(prev => prev.map((f, idx) =>
-        idx === prev.length - 1 ? { ...f, status: 'error' as const, error: err instanceof Error ? err.message : 'Failed to process folder' } : f
+        idx === prev.length - 1 ? { ...f, status: 'error' as const, error: errMsg } : f
       ));
     }
   };
