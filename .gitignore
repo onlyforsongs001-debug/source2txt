@@ -42,6 +42,9 @@ tmp/
 # HF Space (separate repo)
 hf_space/
 
+# Agent config (contains secrets)
+AGENTS.md
+
 # Old deploy scripts (contain tokens)
 check_hf.py
 push_hf.py
