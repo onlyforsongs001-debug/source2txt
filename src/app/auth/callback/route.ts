@@ -50,6 +50,11 @@ export async function GET(request: Request) {
           zip_daily_date: today,
           updated_at: new Date().toISOString(),
         });
+      } else if (existingProfile.credits < 10) {
+        await supabaseAdmin.from('profiles').update({
+          credits: 100,
+          updated_at: new Date().toISOString(),
+        }).eq('id', data.user.id);
       }
     }
   }
