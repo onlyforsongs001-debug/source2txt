@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const withHistory = searchParams.get('history') === 'true';
 
-    const { data: profile, error } = await supabaseAdmin
+    let { data: profile, error } = await supabaseAdmin
       .from('profiles')
       .select('credits, subscription_tier, zip_daily_count, zip_daily_date')
       .eq('id', session.user.id)
@@ -45,6 +45,14 @@ export async function GET(request: NextRequest) {
 
     if (error || !profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
+    if (profile.credits < 10) {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ credits: 100, updated_at: new Date().toISOString() })
+        .eq('id', session.user.id);
+      profile.credits = 100;
     }
 
     const today = new Date().toISOString().split('T')[0];
