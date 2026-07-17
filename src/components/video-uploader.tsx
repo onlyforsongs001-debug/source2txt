@@ -317,14 +317,18 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
         idx === prev.length - 1 ? { ...f, file: folderFile, folderText: combined, status: 'ready' as const, progress: 100, processingMessage: undefined } : f
       ));
 
-      onFilesSelect?.([{
+      const folderItem = {
         file: folderFile,
         folderText: combined,
         folderFileCount: textFiles.length,
-        isFolder: true,
+        isFolder: true as const,
         status: 'ready' as const,
         progress: 100,
-      }]);
+      };
+      const result = onFilesSelect?.([folderItem]);
+      if (result && typeof result.catch === 'function') {
+        result.catch((e: unknown) => console.error('onFilesSelect rejected:', e));
+      }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : String(err) || 'Failed to process folder');
       console.error('Folder processing error:', errMsg, err);

@@ -31,19 +31,26 @@ export async function GET(request: Request) {
 
     if (!error && data.user) {
       const today = new Date().toISOString().split('T')[0];
-      await supabaseAdmin.from('profiles').upsert({
-        id: data.user.id,
-        email: data.user.email!,
-        full_name: data.user.user_metadata?.full_name,
-        avatar_url: data.user.user_metadata?.avatar_url,
-        credits: 30, // 5 minutes (1 credit = 10 sec)
-        subscription_tier: 'free',
-        zip_daily_count: 0,
-        zip_daily_date: today,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'id'
-      });
+
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, credits')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!existingProfile) {
+        await supabaseAdmin.from('profiles').insert({
+          id: data.user.id,
+          email: data.user.email!,
+          full_name: data.user.user_metadata?.full_name,
+          avatar_url: data.user.user_metadata?.avatar_url,
+          credits: 100,
+          subscription_tier: 'free',
+          zip_daily_count: 0,
+          zip_daily_date: today,
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
   }
 
