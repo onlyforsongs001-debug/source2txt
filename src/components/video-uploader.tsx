@@ -241,7 +241,7 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
   const handleFolderChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const entries = Array.from(e.target.files || []);
-      console.error(`DEBUG_LOG: Nhận được ${entries.length} files trong folder.`);
+      console.log(`Folder selected: ${entries.length} files`);
       if (entries.length === 0) return;
 
       // Log for debugging
@@ -266,14 +266,11 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
         return TEXT_EXTENSIONS.has(ext);
       });
 
-      console.error(`DEBUG_LOG: Sau khi lọc, còn lại ${textFiles.length} file văn bản/code.`);
+      console.log(`Found ${textFiles.length} text files after filtering.`);
 
       // Show feedback even if no text files
       if (textFiles.length === 0) {
-        console.warn('No text files found in folder');
-        const skippedCount = entries.filter(f => shouldSkipPath((f as any).relativePath || f.webkitRelativePath || f.name)).length;
-        const unsupportedCount = entries.length - skippedCount;
-        console.error(`DEBUG_LOG: 0 file hợp lệ. Skip: ${skippedCount}, Không hỗ trợ: ${unsupportedCount}`);
+        console.warn(`No text files found in folder`);
         return;
       }
 
@@ -316,29 +313,21 @@ export function VideoUploader({ onFilesSelect, subscriptionTier }: VideoUploader
       // @ts-ignore
       const folderFile = new File([combined], folderName, { type: 'text/plain' });
 
-      try {
-        setFiles(prev => prev.map((f, idx) =>
-          idx === prev.length - 1 ? { ...f, file: folderFile, folderText: combined, status: 'ready' as const, progress: 100, processingMessage: undefined } : f
-        ));
-      } catch (setErr) {
-        console.error('setFiles error in folder:', setErr);
-      }
+      setFiles(prev => prev.map((f, idx) =>
+        idx === prev.length - 1 ? { ...f, file: folderFile, folderText: combined, status: 'ready' as const, progress: 100, processingMessage: undefined } : f
+      ));
 
-      try {
-        onFilesSelect?.([{
-          file: folderFile,
-          folderText: combined,
-          folderFileCount: textFiles.length,
-          isFolder: true,
-          status: 'ready' as const,
-          progress: 100,
-        }]);
-      } catch (selectErr) {
-        console.error('onFilesSelect error in folder:', selectErr);
-      }
+      onFilesSelect?.([{
+        file: folderFile,
+        folderText: combined,
+        folderFileCount: textFiles.length,
+        isFolder: true,
+        status: 'ready' as const,
+        progress: 100,
+      }]);
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err) || 'Failed to process folder');
-      console.error('Folder processing error:', err, 'Type:', typeof err, 'Message:', errMsg);
+      const errMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : String(err) || 'Failed to process folder');
+      console.error('Folder processing error:', errMsg, err);
       setFiles(prev => prev.map((f, idx) =>
         idx === prev.length - 1 ? { ...f, status: 'error' as const, error: errMsg } : f
       ));
